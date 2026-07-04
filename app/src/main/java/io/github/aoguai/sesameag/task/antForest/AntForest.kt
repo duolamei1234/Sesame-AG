@@ -223,6 +223,9 @@ class AntForest : ModelTask(), EnergyCollectCallback {
 
     private var vitalityExchangeList: SelectAndCountModelField? = null
     private var wateringEnabled: BooleanModelField? = null
+    private var waterFriendEnergyFirst: BooleanModelField? = null
+    @Volatile
+    private var preCollectWateringExecutedThisRound: Boolean = false
     private var returnWater33: IntegerModelField? = null
     private var returnWater18: IntegerModelField? = null
     private var returnWater10: IntegerModelField? = null
@@ -392,6 +395,20 @@ class AntForest : ModelTask(), EnergyCollectCallback {
 
     private fun isForestWateringEnabled(): Boolean {
         return wateringEnabled?.value != false
+    }
+
+    internal fun shouldRunWaterFriendsBeforeCollect(): Boolean {
+        return isForestWateringEnabled() &&
+            waterFriendEnergyFirst?.value == true &&
+            !preCollectWateringExecutedThisRound
+    }
+
+    internal fun markWaterFriendsBeforeCollectExecuted() {
+        preCollectWateringExecutedThisRound = true
+    }
+
+    internal fun hasWaterFriendsBeforeCollectExecuted(): Boolean {
+        return preCollectWateringExecutedThisRound
     }
 
     private fun hasRebornProtectWorkEnabled(): Boolean {
@@ -652,6 +669,14 @@ class AntForest : ModelTask(), EnergyCollectCallback {
                 true
             ).withDesc("统一控制普通浇水、随机浇水任务、回浇和浇水金球/保护回赠收取；关闭后不影响复活金球与任务领奖。").also {
                 wateringEnabled = it
+            })
+        modelFields.addField(
+            BooleanModelField(
+                "waterFriendEnergyFirst",
+                "浇水 | 每轮收能量前先执行",
+                false
+            ).withDesc("开启后在完整森林流程中先执行好友浇水，再收自己/好友能量；仅影响正常流程，不影响“只收能量”链路。").also {
+                waterFriendEnergyFirst = it
             })
         modelFields.addField(
             IntegerModelField(
@@ -1024,6 +1049,7 @@ class AntForest : ModelTask(), EnergyCollectCallback {
             GreenLife.resetForestMarketRound()
             if (showBagList?.value == true) showBag()
             initRebornWeeklyState()
+            preCollectWateringExecutedThisRound = false
             // 加载“今日统计”（按账号维度持久化），用于跨重启/多次运行累计
             selfId?.takeIf { it.isNotBlank() }?.let { uid ->
                 Statistics.load(uid)
@@ -1105,6 +1131,7 @@ class AntForest : ModelTask(), EnergyCollectCallback {
         handledProtectUsers.clear()
         roundPropCheckState = null
         lastUsePropCheckTime = 0L
+        preCollectWateringExecutedThisRound = false
         forestGameCenterRecentAppRecords.clear()
         GreenLife.resetForestMarketRound()
     }
@@ -7133,12 +7160,15 @@ class AntForest : ModelTask(), EnergyCollectCallback {
                 val response = unwrapResData(JSONObject(AntForestRpcCall.queryAnimalAndPiece(animalId)))
                 var resultCode = response.optString("resultCode")
                 if ("SUCCESS" != resultCode) {
-                    Log.forest("查询失败: " + response.optString("resultDesc"))
+                    Log.forest(
+                        "动物碎片合成查询失败[#${animalId}]: " +
+                            response.optString("resultDesc", response.optString("desc"))
+                    )
                     break
                 }
                 val animalProps = response.optJSONArray("animalProps")
                 if (animalProps == null || animalProps.length() == 0) {
-                    Log.forest("动物属性数据为空")
+                    Log.forest("动物碎片合成查询返回空动物数据[#${animalId}]")
                     break
                 }
                 // 获取第一个动物的属性
@@ -7149,7 +7179,7 @@ class AntForest : ModelTask(), EnergyCollectCallback {
                 // 获取碎片信息
                 val pieces = animalProp.optJSONArray("pieces")
                 if (pieces == null || pieces.length() == 0) {
-                    Log.forest("碎片数据为空")
+                    Log.forest("动物碎片合成查询缺少碎片数据[$name]")
                     break
                 }
                 var canCombineAnimalPiece = true
@@ -7159,7 +7189,7 @@ class AntForest : ModelTask(), EnergyCollectCallback {
                     val piece = pieces.optJSONObject(j)
                     if (piece == null || piece.optInt("holdsNum", 0) <= 0) {
                         canCombineAnimalPiece = false
-                        Log.forest("碎片不足，无法合成动物")
+                        Log.forest("动物碎片不足[$name]：无法继续自动合成")
                         break
                     }
                     val propId = piece.optJSONArray("propIdList")?.optString(0)?.takeIf { it.isNotBlank() }
@@ -7183,7 +7213,10 @@ class AntForest : ModelTask(), EnergyCollectCallback {
                         GlobalThreadPools.sleepCompat(100) // 等待一段时间再查询
                         continue
                     } else {
-                        Log.forest("合成失败: " + combineResponse.optString("resultDesc"))
+                        Log.forest(
+                            "动物碎片合成失败[$name]: " +
+                                combineResponse.optString("resultDesc", combineResponse.optString("desc"))
+                        )
                     }
                 }
                 break // 如果不能合成或合成失败，跳出循环
