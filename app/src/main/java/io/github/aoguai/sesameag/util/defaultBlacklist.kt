@@ -52,6 +52,8 @@ private val sesameCreditDefaultBlacklist =
         "zml_baoweixiangrikui_renwu|去玩保卫向日葵", // 参数错误：promiseActivityExtCheck
         "zml_sanguobingheshidai_renwu|去玩三国冰河时代", // 参数错误：promiseActivityExtCheck
         "zml_zfbfeizhu_xiadan_sanfang|去飞猪订酒店", // 参数错误：promiseActivityExtCheck，固定跳过
+        "zml_renyi30s_7dacu", // promiseActivityExtCheck 返回 ILLEGAL_ARGUMENT，无稳定游戏完成闭环
+        "zml_zhuanhua_7dacu", // promiseActivityExtCheck 返回 ILLEGAL_ARGUMENT，无稳定游戏完成闭环
         // 芝麻树 SIGNUP_SEND 游戏/导流任务
         "AP11327686|秒杀浏览",
         "AP18365439|去天天秒杀下1单", // rentGreenTaskFinish 返回 20020012，任务完成失败
@@ -99,12 +101,15 @@ private val sesameAlchemyDefaultBlacklist =
         "hjwf_xundaodaqian_renwu|去玩寻道大千", // 参数错误：promiseActivityExtCheck
         "hjwf_jihewangguo_renwu|去玩几何王国", // 参数错误：promiseActivityExtCheck
         "hjwf_linghuashi_renwu|去玩灵画师", // 参数错误：promiseActivityExtCheck / ILLEGAL_ARGUMENT
+        "hjwf_zh_7dacu_leyuan", // promiseActivityExtCheck 返回 ILLEGAL_ARGUMENT，无稳定游戏完成闭环
         "hjwf_longjizhicheng_renwu|去玩龙迹之城", // 参数错误：promiseActivityExtCheck
     )
 
 private val orchardDefaultBlacklist =
     setOf(
         // 芭芭农场
+        "ORCHARD_NORMAL_ZADAN10_3000", // finishTask 返回 400000040，不支持rpc调用
+        "ANTFARM_ORCHARD_NORMAL_GONGGEFANGWEN", // finishTask 返回 400000040，不支持rpc调用
         "ORCHARD_NORMAL_KUAISHOU_MAX", // 逛一逛快手
         "ORCHARD_NORMAL_DIAOYU1", // 钓鱼1次
         "ZHUFANG3IN1", // 添加农场小组件并访问
@@ -112,13 +117,11 @@ private val orchardDefaultBlacklist =
         "12173", // 买好货
         "44797|逛助农好货得肥料", // finishTask 返回 400000001：任务全局配置不存在
         "TOUTIAO|逛一逛今日头条", // 精确匹配旧今日头条任务，避免误伤趣头条任务
-        "ORCHARD_NORMAL_ZADAN10_3000", // 砸蛋10次得3000肥料
         "ORCHARD_NORMAL_JIUYIHUISHOU_VISIT", // 旧衣服回收
         "ORCHARD_NORMAL_SHOUJISHUMAHUISHOU", // 数码回收
         "ORCHARD_NORMAL_TAB3_ZHIFA", // 看视频领肥料
         "ORCHARD_NORMAL_AQ_XIAZAI", // 下载蚂蚁阿福看健康攻略
         "ORCHARD_NORMAL_NCLY_GLY", // 新春限时试玩福利
-        "ORCHARD_NCLY_GAME_IAA", // 合不过我吧通过1关：finishTask 返回 400000040，不支持rpc调用
         "ncflzhrw51", // 去游戏中心抢金条：不支持rpc调用
         "babafarm_cjmk_xdujdd15", // 去游戏中心玩游戏：不支持rpc调用
         "LINGHUOTIAOKONG", // 逛一逛新浪微博
@@ -177,6 +180,8 @@ private val oceanDefaultBlacklist =
     setOf(
         // 神奇海洋
         "玩一玩生存33天",
+        "LHS_QDRW_HAIYANG", // finishTask 返回 400000040，不支持rpc调用
+        "YXZY_QDRW_HAIYANG", // finishTask 返回 400000040，不支持rpc调用
         "SYH_XCHY_shichang202607", // 2026-07-23 finishTask 返回 400000040，无稳定完成RPC闭环
         "SYH_XCMY_shichang202607", // 2026-07-23 aiFishFinishTask 返回 400000040，无稳定完成RPC闭环
         "SYH_XCMY_zhuanhua202607", // 2026-07-23 aiFishFinishTask 返回 400000040，无稳定完成RPC闭环
@@ -255,12 +260,15 @@ private val forestDefaultBlacklist =
         "YUSHU_202511", // 单种榆树，年年有榆
         "KTKZ_YS202511", // 一起组团种榆树
         "CNXDY_TASK_QUDONG", // 玩下蛋鸭击败20只怪：不支持rpc调用
+        "FOREST_NORMAL_DRAW_YYDWLXQ_ZH", // finishTaskopengreen 返回 400000040
+        "FOREST_ACTIVITY_DRAW_ZHXF_ZHWUFU", // finishTaskopengreen 返回 400000040
         "FOREST_NORMAL_DRAW_SHARE", // 森林抽抽乐分享任务
         "FOREST_ACTIVITY_DRAW_SHARE", // 森林抽抽乐活动分享任务
         "FOREST_ACTIVITY_DRAW_SGBHSD", // 森林抽抽乐游戏任务
         "FOREST_ACTIVITY_DRAW_XS", // 森林抽抽乐玩游戏得新机会
         "FOREST_ACTIVITY_DRAW_LHY_ZHWUFU", // 玩游戏得2次机会：finishTaskopengreen 返回 400000040
         "FOREST_ACTIVITY_DRAW_LJZC_ZHWUFU", // 玩游戏得2次机会：finishTaskopengreen 返回 400000040
+        "WDHYSJ_QDRW_NORMAL", // 【限时】玩游戏得2次机会：finishTaskopengreen 返回 400000040
         "MHXCZ_RYCZ_HDCCL|玩梦幻消除战充值任意金额", // 森林抽抽乐充值任务，缺少稳定完成RPC闭环
         "FOREST_ACTIVITY_DRAW_TBQD|去淘宝签到领红包", // 森林抽抽乐淘宝外跳任务，缺少稳定完成RPC闭环
         "RYCZ", // 森林抽抽乐充值类任务前缀，缺少稳定完成RPC闭环
@@ -418,6 +426,11 @@ private val insuredDefaultBlacklist =
         "AP16253999|0元体验最高百万重疾保障", // 需真实投保行为，缺少稳定完成RPC闭环
     )
 
+private val youthPrivilegeDefaultBlacklist =
+    setOf(
+        "AP17294013",   // “添加到首页”
+    )
+
 private val sportsDefaultBlacklist =
     setOf(
         // 运动
@@ -458,6 +471,7 @@ val DEFAULT_BLACKLIST: Map<String, Set<String>> =
         "黄金票" to goldTicketDefaultBlacklist,
         "会员" to memberDefaultBlacklist,
         "蚂蚁保" to insuredDefaultBlacklist,
+        "青春特权" to youthPrivilegeDefaultBlacklist,
         "运动" to sportsDefaultBlacklist,
         "网商银行" to myBankWelfareDefaultBlacklist,
         "神奇物种" to dodoDefaultBlacklist,
