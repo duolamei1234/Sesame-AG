@@ -109,8 +109,6 @@ private val goldenBeanDefaultBlacklist =
         "GOLDEN_BEAN_MASTER_TASK:GOLDEN_BEAN_TASK_XIANSHANGZHIFU", // 线上支付
         "GOLDEN_BEAN_MASTER_TASK:GOLDEN_BEAN_TASK_XIANXIAZHIFU", // 线下支付
         "GOLDEN_BEAN_MASTER_TASK:GOLDEN_BEAN_TASK_YUEBAO", // 余额宝真实业务动作
-        "GOLDEN_BEAN_MASTER_TASK:GOLDENBEAN_GAME_ZH0_XDDQ", // 无现有精确游戏上报合同
-        "GOLDEN_BEAN_MASTER_TASK:GOLDENBEAN_GAME_ZH0_MSQYJ_V31", // 无现有精确游戏上报合同
         "GOLDEN_BEAN_ZHIMA_LIST:ZHIMA_youxi_dageluosi", // 无可验证的外部游戏完成RPC闭环
         "GOLDEN_BEAN_ZHIMA_LIST:ZHIMA_youxi_zheguanwohenxing", // 无可验证的外部游戏完成RPC闭环
         "GOLDEN_BEAN_ZHIMA_LIST:ZHIMA_youxi_hebuguowoba", // 无可验证的外部游戏完成RPC闭环
@@ -140,7 +138,10 @@ private val farmDefaultBlacklist =
         "线上支付",
     )
 
-private val oceanDefaultBlacklist = emptySet<String>()
+private val oceanDefaultBlacklist =
+    setOf(
+        "BWXRK_QDRW_HAIYANG",
+    )
 
 private val forestDefaultBlacklist =
     setOf(
