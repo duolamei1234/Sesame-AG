@@ -21,6 +21,7 @@ private val sesameCreditDefaultBlacklist =
         "zml_cainiao_guojiang_sanfang", // pushActivity 返回 ILLEGAL_ARGUMENT，需真实菜鸟行为
         "zml_tbqd_qiandao_sanfang", // 需要淘宝签到结果
         "zml_xiangjiangshikaipao_renwu", // 需要游戏内任务事件
+        "zml_longjizhicheng_renwu", // pushActivity 返回 promiseActivityExtCheck 非法，需游戏内任务事件
         "zml_zcylt_chongzhi", // 需要真实充值
         "zml_baoweixiangrikui_renwu", // 需要游戏内任务事件
         "zml_jihewangguo_renwu", // 需要游戏内任务事件
@@ -62,6 +63,11 @@ private val orchardDefaultBlacklist =
         "ANTFARM_ORCHARD_NORMAL_CAINIAO_DUAN", // 菜鸟任务 finishTask 返回 400000040
         "ORCHARD_NCLY_ZH_MSQYJ_V3", // 美食趣味记依赖真实游戏事件
         "ORCHARD_NCLY_ZH_DDPLY_V3", // 对对碰乐园依赖真实游戏事件
+        "ORCHARD_NCLY_ZH_JHWG_V3",
+        "ORCHARD_NORMAL_NCLY_SJWY",
+        "ORCHARD_NCLY_ZH_WGDS",
+        "ORCHARD_NCLY_ZH_SC33T_fb",
+        "ORCHARD_NCLY_CHARGE1_LMCT",
         "ORCHARD_NCLY_GAME_CHARGE0|任意充值得100000肥", // finishTask 返回 400000040，不支持rpc调用
         "CHOUCHOULE_GAME_WDHYSJ_ZH", // 居民订单不可由普通 finishDrawTask 完成，返回 400000040
         "CHOUCHOULE_GAME_WDHYSJ_CHARGE", // 需真实充值，finishDrawTask 返回 400000040
@@ -124,11 +130,15 @@ private val farmDefaultBlacklist =
 private val oceanDefaultBlacklist =
     setOf(
         "BWXRK_QDRW_HAIYANG",
+        "AIFISH_ZHUANHUA_MHXCZ", // aiFishFinishTask 返回 400000040，当前任务类型不支持
     )
 
 private val forestDefaultBlacklist =
     setOf(
         // 蚂蚁森林
+        "GAME_DONE_SGBHSD_new", // 常规招募3次，不能由点击、时长或通用完成代替
+        "ANTFOREST_2021004173661702_ST_XR", // 同一招募条件的活力奖励，通用finish明确返回不支持rpc调用
+        "QYJZFM_XS_1", // 闯关3次的活力奖励，finishTaskopengreen返回400000040
         "ENERGY_XUANJIAO_huanbaobei环保杯",
         "ENERGY_XUANJIAO_zhiyinshui直饮水",
         "ENERGY_XUANJIAO_dianzibaodan电子保单",
@@ -188,6 +198,9 @@ private val forestDefaultBlacklist =
         "CNXDY_TASK_QUDONG", // 玩下蛋鸭击败20只怪：不支持rpc调用
         "FOREST_NORMAL_DRAW_YYDWLXQ_ZH", // finishTaskopengreen 返回 400000040
         "FOREST_ACTIVITY_DRAW_ZHXF_ZHWUFU", // finishTaskopengreen 返回 400000040
+        "WDHYSJ_QDRW_NORMAL",
+        "FOREST_ACTIVITY_DRAW_ZCYLT_ZHWUFU",
+        "FOREST_ACTIVITY_DRAW_LMCT_ZHWUFU", // finishTaskopengreen 返回 400000040
         "FOREST_NORMAL_DRAW_SHARE", // 森林抽抽乐分享任务
         "FOREST_ACTIVITY_DRAW_SHARE", // 森林抽抽乐活动分享任务
         "ZHRW_HUIYUANjiaoshui_202608", // 每日浇水免费拿绿植：finishTask 返回 400000040
@@ -242,6 +255,8 @@ private val stallDefaultBlacklist =
         "ANTSTALL_TASK_taojinbihuanduan|进入淘宝芭芭农场领免费水果",
         "ANTSTALL_P2P_DAILY_SHARER|邀请好友助力",
         "ANTSTALL_TASK_XCXYX_langmancanting", // 需要完成游戏订单，普通finishTask返回400000040
+        "ANTSTALL_TASK_XCXYX_qingyunjue", // 需要游戏内闯关事件，普通finishTask返回400000040
+        "ANTSTALL_TASK_XCXYX_sijiwuyu", // 需要游戏内合成事件，普通finishTask返回400000040
     )
 
 private val yuebaoDefaultBlacklist =
@@ -334,6 +349,10 @@ private val memberDefaultBlacklist =
         "2021005124694002#xgtsjrwj_game_denghuo_task_1#1",
         "2021003193629997#cyddmx_game_pass_level_1#6",
         "2021006109602033#tznzy_game_pass_every_1#3",
+        "2060170000216502#gkyyn_game_pass_every_1#5", // 需要游戏内通关事件
+        "2060170000363633#wbgwy_game_pass_every_1#2", // 需要游戏内通关事件
+        "2021006135621066#qyxx_game_zhuxian_every_1#10", // 需要游戏内主线事件
+        "2021004144418207#yqsl_game_pass_every_1#3", // 需要游戏内通关事件
     )
 
 private val insuredDefaultBlacklist =
