@@ -26,13 +26,16 @@ import io.github.aoguai.sesameag.task.exchange.ExchangeCost
 import io.github.aoguai.sesameag.task.exchange.ExchangeDisplayMeta
 import io.github.aoguai.sesameag.task.exchange.ExchangeItem
 import io.github.aoguai.sesameag.task.exchange.ExchangeLimit
+import io.github.aoguai.sesameag.task.exchange.ExchangeFetchPacing
 import io.github.aoguai.sesameag.task.exchange.ExchangeOptionRow
 import io.github.aoguai.sesameag.task.exchange.ExchangeOptionsCache
+import io.github.aoguai.sesameag.task.exchange.ExchangeOptionsSnapshot
 import io.github.aoguai.sesameag.task.exchange.ExchangeSafety
 import io.github.aoguai.sesameag.task.exchange.ExchangeSafetyRules
 import io.github.aoguai.sesameag.util.JsonUtil
 import io.github.aoguai.sesameag.util.Log
 import io.github.aoguai.sesameag.util.ResChecker
+import io.github.aoguai.sesameag.util.RpcOfflineRisk
 import io.github.aoguai.sesameag.util.maps.IdMapManager
 import io.github.aoguai.sesameag.util.maps.MyBankWelfareBenefitMap
 import io.github.aoguai.sesameag.util.maps.UserMap
@@ -144,6 +147,13 @@ class MyBankWelfare : ModelTask() {
     }
 
     private fun refreshMyBankWelfareExchangeOptionsForSettings(): List<MapperEntity> {
+        val freshRows = ExchangeOptionsCache.loadTodaySnapshot(
+            UserMap.currentUid, ExchangeOptionsRefreshBridge.TARGET_MYBANK_WELFARE
+        )?.rows
+        if (freshRows != null) {
+            Log.mybank("${BUSINESS_NAME}🎐设置页使用新鲜缓存#${freshRows.size}")
+            return freshRows
+        }
         if (!HookReadyChecker.isCurrentProcessReadyForRpc(UserMap.currentUid)) {
             val cachedRows = ExchangeOptionsCache.loadForSettingsCache(
                 UserMap.currentUid,
@@ -190,19 +200,18 @@ class MyBankWelfare : ModelTask() {
         return rows
     }
 
-    internal fun refreshMyBankWelfareExchangeOptionsForRemote(): List<ExchangeOptionRow> =
-        refreshMyBankWelfareExchangeOptionsFromRpc()
+    internal fun refreshMyBankWelfareExchangeOptionsForRemote(forceRefresh: Boolean = false): List<ExchangeOptionRow> =
+        refreshMyBankWelfareExchangeOptionsFromRpc(forceRefresh)
 
-    private fun refreshMyBankWelfareExchangeOptionsFromRpc(): List<ExchangeOptionRow> {
+    private fun refreshMyBankWelfareExchangeOptionsFromRpc(forceRefresh: Boolean = false): List<ExchangeOptionRow> {
         try {
             val userId = UserMap.currentUid
-            val exchangeData = queryMyBankWelfareExchangeData()
+            val exchangeData = queryMyBankWelfareExchangeData(forceRefresh)
             val benefitMap = IdMapManager.getInstance(MyBankWelfareBenefitMap::class.java)
             exchangeData.rows.forEach { row ->
                 benefitMap.add(row.id, row.name)
             }
             benefitMap.save(userId)
-            ExchangeOptionsCache.save(userId, ExchangeOptionsRefreshBridge.TARGET_MYBANK_WELFARE, exchangeData.rows)
             Log.mybank("${BUSINESS_NAME}🎐刷新兑换列表#${exchangeData.rows.size}")
             return exchangeData.rows
         } catch (t: Throwable) {
@@ -211,41 +220,64 @@ class MyBankWelfare : ModelTask() {
         }
     }
 
-    private fun queryMyBankWelfareExchangeData(): MyBankWelfareExchangeData {
-        val candidateMap = LinkedHashMap<String, MyBankWelfareExchangeCandidate>()
-        queryMyBankRightsCandidates(candidateMap)
-        val rows = candidateMap.values.map { it.item.toOptionRow() }
-        return MyBankWelfareExchangeData(rows, candidateMap)
+    private fun queryMyBankWelfareExchangeData(forceRefresh: Boolean = false): MyBankWelfareExchangeData {
+        fun parse(payload: JSONObject): LinkedHashMap<String, MyBankWelfareExchangeCandidate> {
+            val candidates = LinkedHashMap<String, MyBankWelfareExchangeCandidate>()
+            val items = payload.getJSONArray("items")
+            for (i in 0 until items.length()) {
+                val candidate = buildMyBankExchangeCandidate(items.getJSONObject(i)) ?: continue
+                candidates.putIfAbsent(candidate.item.id, candidate)
+            }
+            return candidates
+        }
+        val snapshot = ExchangeOptionsCache.getOrFetch(UserMap.currentUid, ExchangeOptionsRefreshBridge.TARGET_MYBANK_WELFARE, forceRefresh) { session ->
+            val payload = JSONObject().put("items", queryMyBankRightsCandidates(session))
+            ExchangeOptionsSnapshot(parse(payload).values.map { it.item.toOptionRow() }, payload)
+        }
+        val candidates = parse(snapshot.payload)
+        return MyBankWelfareExchangeData(candidates.values.map { it.item.toOptionRow() }, candidates)
     }
 
-    private fun queryMyBankRightsCandidates(
-        candidateMap: LinkedHashMap<String, MyBankWelfareExchangeCandidate>
-    ) {
+    private fun queryMyBankRightsCandidates(session: io.github.aoguai.sesameag.task.exchange.ExchangeFetchSession): JSONArray {
+        val items = JSONArray()
+        val seenItemIds = linkedSetOf<String>()
         var pageNum = 1
         var totalCount = Int.MAX_VALUE
         val pageSize = 20
         while ((pageNum - 1) * pageSize < totalCount) {
-            val response = JSONObject(MyBankWelfareRpcCall.queryItemsInMemberV2(pageNum = pageNum, perPageSize = pageSize))
-            if (!ResChecker.checkRes(TAG, "${BUSINESS_NAME}权益列表查询失败:", response)) {
-                break
+            val response = session.read("items", JSONObject().put("pageNum", pageNum).put("pageSize", pageSize), "权益第 $pageNum 页") {
+                JSONObject(MyBankWelfareRpcCall.queryItemsInMemberV2(pageNum = pageNum, perPageSize = pageSize))
             }
-            val pageItems = response.optJSONObject("result")
-                ?.optJSONObject("pageItems")
-                ?: break
-            val dataList = pageItems.optJSONArray("dataList") ?: break
-            if (dataList.length() == 0) {
-                break
-            }
-            for (i in 0 until dataList.length()) {
-                val candidate = buildMyBankExchangeCandidate(dataList.optJSONObject(i) ?: continue) ?: continue
-                candidateMap.putIfAbsent(candidate.item.id, candidate)
-            }
+            check(ResChecker.checkRes(TAG, "${BUSINESS_NAME}权益列表查询失败:", response)) { "网商银行福利金权益列表查询失败" }
+            val pageItems = response.getJSONObject("result").getJSONObject("pageItems")
+            val dataList = pageItems.getJSONArray("dataList")
             totalCount = pageItems.optInt("totalCount", totalCount)
+            val seenCount = seenItemIds.size
+            for (i in 0 until dataList.length()) {
+                val item = dataList.getJSONObject(i)
+                items.put(item)
+                val itemId = item.optString("itemId").trim()
+                    .ifBlank { item.optJSONObject("itemConfigDTO")?.optString("itemId").orEmpty().trim() }
+                    .ifBlank { parseNestedItemInfo(item)?.optString("itemId").orEmpty().trim() }
+                if (itemId.isNotBlank()) seenItemIds.add(itemId)
+            }
             if (dataList.length() < pageSize) {
+                check(totalCount == Int.MAX_VALUE || items.length() >= totalCount) { "网商银行福利金列表尚有未拉取商品" }
+                session.commit(JSONObject().put("done", true).put("totalCount", totalCount), dataList.length(), "分页结束，保存完整列表")
                 break
             }
             pageNum++
+            val hasMore = (pageNum - 1) * pageSize < totalCount
+            if (hasMore) {
+                check(seenItemIds.size > seenCount) {
+                    "网商银行福利金分页未前进: pageNum=${pageNum - 1} count=${dataList.length()} totalCount=$totalCount"
+                }
+            }
+            session.commit(JSONObject().put("pageNum", pageNum).put("totalCount", totalCount).put("done", !hasMore),
+                dataList.length(), if (hasMore) "权益第 $pageNum 页" else "分页结束，保存完整列表")
+            if (hasMore) session.pageTurnDelay()
         }
+        return items
     }
 
     private fun buildMyBankExchangeCandidate(
@@ -533,8 +565,12 @@ class MyBankWelfare : ModelTask() {
             setFlagToday(StatusFlags.FLAG_MYBANK_WELFARE_EXCHANGE_REFRESH_DONE)
             return
         }
+        val userId = UserMap.currentUid
+        if (selectedIds.isEmpty()) {
+            Log.mybank("${BUSINESS_NAME}🎐未勾选目标，跳过列表拉取")
+            return
+        }
         try {
-            val userId = UserMap.currentUid
             val exchangeData = queryMyBankWelfareExchangeData()
             val benefitMap = IdMapManager.getInstance(MyBankWelfareBenefitMap::class.java)
             exchangeData.rows.forEach { row ->
