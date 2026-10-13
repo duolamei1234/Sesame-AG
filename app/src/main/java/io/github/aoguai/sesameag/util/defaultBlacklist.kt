@@ -38,7 +38,6 @@ private val sesameAlchemyDefaultBlacklist =
         "hjwf_zcylt_zhuanhua",
         "hjwf_eduka_renwu",
         "alchemy_check_in_subscribe_task", // joinActivity 返回 PROMISE_TEMPLATE_NOT_EXIST
-        "hjwf_tbbbnc_shifei_sanfang",
         "hjwf_xiangjiangshikaipao_renwu", // 游戏事件不能由pushActivity完成，返回ILLEGAL_ARGUMENT
         "hjwf_zcylt_chongzhi", // 真实充值不能由pushActivity完成，返回ILLEGAL_ARGUMENT
         "hjwf_langmancanting_renwu", // 完成3个订单的游戏事件，pushActivity返回ILLEGAL_ARGUMENT
@@ -48,7 +47,6 @@ private val sesameAlchemyDefaultBlacklist =
 private val orchardDefaultBlacklist =
     setOf(
         // 芭芭农场
-        "ORCHARD_NORMAL_DIAOYU1", // 钓鱼1次
         "ZHUFANG3IN1", // 添加农场小组件并访问
         "70000|逛好物最高得1500肥料", // XLight广告流量风控，缺少稳定自动闭环
         "12173", // 买好货
@@ -72,7 +70,6 @@ private val orchardDefaultBlacklist =
         "CHOUCHOULE_GAME_WDHYSJ_ZH", // 居民订单不可由普通 finishDrawTask 完成，返回 400000040
         "CHOUCHOULE_GAME_WDHYSJ_CHARGE", // 需真实充值，finishDrawTask 返回 400000040
         "ORCHARD_NORMAL_GAODE_VISIT|去高德发表真实评价", // finishTask 返回 400000040，不支持rpc调用
-        "ORCHARD_NORMAL_SHANGOUMIANDAN|逛一逛淘宝闪购", // finishTask 返回 400000040，不支持rpc调用
         "ORCHARD_NORMAL_TAOBAO26_618|去淘金币赢20亿", // 不支持rpc调用，缺少稳定完成RPC闭环
         "ORCHARD_NORMAL_BAIDU_DUO", // 去百度浏览资讯
         "ORCHARD_NORMAL_XIANXIAZHIFU100", // 到店支付1笔得100肥
@@ -250,6 +247,7 @@ private val stallDefaultBlacklist =
         "ANTSTALL_TASK_XCXYX_langmancanting", // 需要完成游戏订单，普通finishTask返回400000040
         "ANTSTALL_TASK_XCXYX_qingyunjue", // 需要游戏内闯关事件，普通finishTask返回400000040
         "ANTSTALL_TASK_XCXYX_sijiwuyu", // 需要游戏内合成事件，普通finishTask返回400000040
+        "ANTSTALL_TASK_XCXYX_yibuliangbu", // 需要游戏内通关事件，普通finishTask返回400000040
     )
 
 private val yuebaoDefaultBlacklist =
@@ -393,6 +391,7 @@ private val myBankWelfareDefaultBlacklist =
         "AP12341521", // 查看借呗额度：需真实授信业务行为
         "AP18353629", // 办理全国大流量卡：需真实办理业务
         "AP12333795", // 完成1笔借呗支用：需真实借款支用行为
+        "AP18374962", // 领取网商贷备用金：事件规则明确拒绝通用send（10000005）
     )
 
 val DEFAULT_BLACKLIST: Map<String, Set<String>> =
