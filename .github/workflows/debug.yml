@@ -1,0 +1,126 @@
+name: 🐞 Build Debug APK
+run-name: 🐞 Debug Build - ${{ github.actor }}
+
+on:
+  push:
+    branches: [ "dev", "main", "master" ]
+  pull_request:
+    branches: [ "dev", "main", "master" ]
+  workflow_dispatch:
+
+env:
+  CI: "true"
+
+jobs:
+  debug-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⏰ Set Timezone to Asia/Shanghai
+        run: |
+          sudo timedatectl set-timezone Asia/Shanghai
+          echo "Current time: $(date)"
+
+      - name: 👨🏻‍💻 Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: ☕ Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "zulu"
+          cache: gradle
+
+      - name: 🤝 Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+          gradle-version: wrapper
+
+      - name: ☎️ Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: 🔥 Build Debug APK with Gradle
+        run: ./gradlew --no-daemon --stacktrace assembleDebug
+
+      - name: 📊 Locate Debug APKs
+        id: locate_apks
+        shell: bash
+        run: |
+          set -euo pipefail
+          debug_dir="app/build/outputs/apk/debug"
+
+          if [ ! -d "$debug_dir" ]; then
+            echo "::error::Debug output directory not found: $debug_dir"
+            ls -R app/build/outputs 2>/dev/null || true
+            exit 1
+          fi
+
+          echo "--- files in $debug_dir ---"
+          find "$debug_dir" -maxdepth 1 -type f -name '*.apk' -printf '%f\n' | sort || true
+
+          pick() { find "$debug_dir" -maxdepth 1 -type f -name "$1" | head -n 1; }
+
+          arm64_apk=$(pick '*-arm64-v8a*.apk')
+          armv7_apk=$(pick '*-armeabi-v7a*.apk')
+          x86_apk=$(pick '*-x86.apk')
+          x86_64_apk=$(pick '*-x86_64*.apk')
+          universal_apk=$(pick '*universal*.apk')
+
+          if [ -z "$universal_apk" ]; then
+            universal_apk=$(pick '*-debug.apk')
+          fi
+
+          echo "arm64_apk=$arm64_apk" >> "$GITHUB_OUTPUT"
+          echo "armv7_apk=$armv7_apk" >> "$GITHUB_OUTPUT"
+          echo "x86_apk=$x86_apk" >> "$GITHUB_OUTPUT"
+          echo "x86_64_apk=$x86_64_apk" >> "$GITHUB_OUTPUT"
+          echo "universal_apk=$universal_apk" >> "$GITHUB_OUTPUT"
+
+          if [ -z "$arm64_apk$armv7_apk$x86_apk$x86_64_apk$universal_apk" ]; then
+            echo "::error::No APK matched any expected name pattern in $debug_dir"
+            exit 1
+          fi
+
+      - name: 🚀 Upload Debug APK - arm64-v8a
+        if: steps.locate_apks.outputs.arm64_apk != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-apk-arm64-v8a
+          path: ${{ steps.locate_apks.outputs.arm64_apk }}
+          if-no-files-found: error
+
+      - name: 🚀 Upload Debug APK - armeabi-v7a
+        if: steps.locate_apks.outputs.armv7_apk != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-apk-armeabi-v7a
+          path: ${{ steps.locate_apks.outputs.armv7_apk }}
+          if-no-files-found: error
+
+      - name: 🚀 Upload Debug APK - x86
+        if: steps.locate_apks.outputs.x86_apk != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-apk-x86
+          path: ${{ steps.locate_apks.outputs.x86_apk }}
+          if-no-files-found: error
+
+      - name: 🚀 Upload Debug APK - x86_64
+        if: steps.locate_apks.outputs.x86_64_apk != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-apk-x86_64
+          path: ${{ steps.locate_apks.outputs.x86_64_apk }}
+          if-no-files-found: error
+
+      - name: 🚀 Upload Debug APK - Universal
+        if: steps.locate_apks.outputs.universal_apk != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-apk-universal
+          path: ${{ steps.locate_apks.outputs.universal_apk }}
+          if-no-files-found: error
